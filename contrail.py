@@ -1635,47 +1635,44 @@ def virtual_network_create(name, conf=None, **kwargs):
 
     Parameters:
     name required - name of the new network
-    configuration: - is optional
 
-    list of parameter which we want to set to the network
-    domain (string) optional - which domain use for creation
-    project (string) optional - which project use for creation
-    ipam (string) optional - which ipam use for network creation
-    ip (string) optional - format is xxx.xxx.xxx.xxx
-    prefix (int) optional - formal is /xx
-    asn (int) optional - autonomus system number
-    target (int) optional - route target number
-    external (boolean) optional - set if network is external
+    conf (dict) optional:
+        domain (string) optional - which domain use for creation
+        project (string) optional - which project use for creation
+        ipam (string) optional - which ipam use for network creation
+        ip (string) optional - format is xxx.xxx.xxx.xxx
+        prefix (int) optional - formal is /xx
+        asn (int) optional - autonomus system number
+        target (int) optional - route target number
+        external (boolean) optional - set if network is external
 
-    allow_transit (boolean) optional - enable allow transit
-    forwarding_mode (any of ['l2_l3','l2','l3']) optional
-    - packet forwarding mode for this virtual network
-    rpf (any of ['enabled','disabled']) optional
-    - Enable or disable Reverse Path Forwarding check
-    for this network
-    mirror_destination (boolean) optional
-    - Mark the vn as mirror destination network
+        allow_transit (boolean) optional - enable allow transit
+        forwarding_mode (any of ['l2_l3','l2','l3']) optional
+            - packet forwarding mode for this virtual network
+        rpf (any of ['enabled','disabled']) optional
+            - Enable or disable Reverse Path Forwarding check
+        for this network
+        mirror_destination (boolean) optional
+            - Mark the vn as mirror destination network
     '''
 
     ret = {'name': name,
            'changes': {},
            'result': True,
            'comment': ''}
+
     # list of existing vn networks
     vn_networks = []
     vnc_client = _auth(**kwargs)
     gsc_obj = vnc_client.project_read(fq_name=['default-domain',
                                                'admin'])
-
+    # check if the network exists
     vn_networks_list = vnc_client._objects_list('virtual_network')
-    # make list of names of vn
     for network in vn_networks_list['virtual-networks']:
-        vn_networks.append(network['fq_name'][2])
-    # check if the vn exists
-    if name in vn_networks:
-        ret['comment'] = ("Virtual network with name "
-                          + name + " already exists")
-        return ret
+        if name == network['fq_name'][2]:
+            ret['comment'] = ("Virtual network with name "
+                              + name + " already exists")
+            return ret
 
     vn_obj = VirtualNetwork(name)
     vn_type_obj = VirtualNetworkType()
@@ -1684,10 +1681,10 @@ def virtual_network_create(name, conf=None, **kwargs):
                                                  'default-project',
                                                  'default-network-ipam'])
 
-    if conf is not None:
-        vnc_client.virtual_network_create(vn_obj)
-        ret['comment'] = "Virtual network "+name+" was created"
-        return ret
+#    if conf is not None:
+#        vnc_client.virtual_network_create(vn_obj)
+#        ret['comment'] = "Virtual network "+name+" was created"
+#        return ret
 
     # create subnet
     if 'ip' in conf.keys() and 'prefix' in conf.keys():
@@ -1726,14 +1723,14 @@ def virtual_network_create(name, conf=None, **kwargs):
     # create virtual network
     if __opts__['test']:
         ret['result'] = None
-        ret['comment'] = "Service appliance set " + name + " will be deleted"
+        ret['comment'] = "Virtual network with name " + name + " will be created"
     else:
         vnc_client.virtual_network_create(vn_obj)
-    ret['comment'] = vn_obj.__dict__
+        ret['comment'] = "Virtual network with name " + name + " was created"
     return ret
 
 
-def virtual_network_update(name, configuration=None, **kwargs):
+def virtual_network_update(name, conf=None, **kwargs):
     '''
     Update existing virtual network
 
@@ -1753,12 +1750,20 @@ def virtual_network_update(name, configuration=None, **kwargs):
     vnc_client = _auth(**kwargs)
     gsc_obj = vnc_client.project_read(fq_name=['default-domain',
                                                'admin'])
-    v = vnc_client._objects_list('virtual_network')
+    
+    # get list of the networks
+    vn_objs = vnc_client._objects_list('virtual-network', detail=True)
+    vn_obj = None
+    for vn in vn_objs:
+        if vn.get_fq_name[2] == name:
+            vn_obj = vn
+            break
 
-    for network in v['virtual-networks']:
-        vn_networks.append(network['fq_name'][2])
-
-    if name not in vn_networks:
+    if vn_obj == None:
         ret['comment'] = ("Virtual network with name "
                           + name + " does not exist")
+        return ret
+
+    if 'ip' in conf.keys() and 'prefix' in conf.keys():
+
     return ret
