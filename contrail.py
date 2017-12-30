@@ -24,9 +24,9 @@ try:
     from vnc_api.vnc_api import LinklocalServiceEntryType, \
         LinklocalServicesTypes, GlobalVrouterConfig
     from vnc_api.gen.resource_client import VirtualRouter, AnalyticsNode, \
-        ConfigNode, DatabaseNode, BgpRouter
+        ConfigNode, DatabaseNode, BgpRouter, VirtualNetwork
     from vnc_api.gen.resource_xsd import AddressFamilies, BgpSessionAttributes, \
-        BgpSession, BgpPeeringAttributes, BgpRouterParams
+        BgpSession, BgpPeeringAttributes, BgpRouterParams, VirtualNetworkType
 
     HAS_CONTRAIL = True
 except ImportError:
