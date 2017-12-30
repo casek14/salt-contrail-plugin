@@ -26,7 +26,8 @@ try:
     from vnc_api.gen.resource_client import VirtualRouter, AnalyticsNode, \
         ConfigNode, DatabaseNode, BgpRouter, VirtualNetwork
     from vnc_api.gen.resource_xsd import AddressFamilies, BgpSessionAttributes, \
-        BgpSession, BgpPeeringAttributes, BgpRouterParams, VirtualNetworkType
+        BgpSession, BgpPeeringAttributes, BgpRouterParams, VirtualNetworkType, \
+        IpamSubnetType, SubnetType, VnSubnetsType, RouteTargetList
 
     HAS_CONTRAIL = True
 except ImportError:
@@ -1681,10 +1682,10 @@ def virtual_network_create(name, conf=None, **kwargs):
                                                  'default-project',
                                                  'default-network-ipam'])
 
-#    if conf is not None:
-#        vnc_client.virtual_network_create(vn_obj)
-#        ret['comment'] = "Virtual network "+name+" was created"
-#        return ret
+    if conf is not None:
+        vnc_client.virtual_network_create(vn_obj)
+        ret['comment'] = "Virtual network "+name+" was created"
+        return ret
 
     # create subnet
     if 'ip' in conf.keys() and 'prefix' in conf.keys():
