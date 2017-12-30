@@ -1515,67 +1515,6 @@ def virtual_network_get(name, **kwargs):
                 'Error': 'Error in retrieving virtual networks.'}
     return ret
 
-def virtual_network_create(name,**kwargs):
-    '''
-    Create specific Contrail virtual router
-    
-    CLI Example:
-    
-    .. code-block:: bash
-    
-    salt '*' contrail.virtual_router_create cmp02 10.10.10.102
-    router_types:
-    - tor-agent
-    - tor-service-node
-    - embedded
-    '''
-    ret = {name,
-    'changes': {},
-    'result': True,
-     'comment': ''}
-    
-    vnc_client = auth(**kwargs)
-    network = virtual_network_list(**kwargs)
-    return network
-
-def virtual_network_create(name, subnet_name, ip, prefix, external, asn, target, **kwargs):
-    '''
-    Create Contrail virtual network
-    
-    CLI Example:
-    .. code-block:: bash
-    salt '*' contrail.virtual_network_create name
-    '''
-    ret = {'name': name,
-    'changes': {},
-    'result': True,
-    'comment': ''}
-    
-    vnc_client = _auth(**kwargs)
-    gsc_obj = vnc_client.project_read(fq_name = ['default-domain','admin'])
-    #Create network
-    vn_obj = VirtualNetwork(name)
-    #create subnet
-    ipam_subnet_type = IpamSubnetType(subnet=SubnetType(ip_prefix=ip, ip_prefix_len=prefix))
-    vn_subnets_type_obj = VnSubnetsType(ipam_subnets=[ipam_subnet_type])
-    
-    #get ipam
-    ipam = vnc_client.network_ipam_read(fq_name=['default-domain','default-project','default-network-ipam'])
-    #add route target to the network
-    route_target_list_obj = RouteTargetList(['target:'+str(asn)+':'+str(target)])
-    vn_obj.set_route_target_list(route_target_list_obj)
-    vn_obj.add_network_ipam(ipam,vn_subnets_type_obj)
-    if external:
-        vn_obj.set_router_external(True)
-    vnc_client.network_ipam_update(ipam)
-    vnc_client.virtual_network_create(vn_obj)
-    print "############################################\n"
-    #    print vn_obj.get_network_ipam_refs()
-    vn_obj.dump()
-    #ipam.dump()
-    ret['comment']= 'External is: %s' %vn_obj.get_router_external()
-    return ret
-
 
 def service_appliance_set_list(**kwargs):
     '''
@@ -1785,7 +1724,11 @@ def virtual_network_create(name, conf=None, **kwargs):
     vn_obj.set_virtual_network_properties(vn_type_obj)
 
     # create virtual network
-    vnc_client.virtual_network_create(vn_obj)
+    if __opts__['test']:
+        ret['result'] = None
+        ret['comment'] = "Service appliance set " + name + " will be deleted"
+    else:
+        vnc_client.virtual_network_create(vn_obj)
     ret['comment'] = vn_obj.__dict__
     return ret
 
