@@ -1765,6 +1765,6 @@ def virtual_network_update(name, conf=None, **kwargs):
                           + name + " does not exist")
         return ret
 
-    if 'ip' in conf.keys() and 'prefix' in conf.keys():
+    # if 'ip' in conf.keys() and 'prefix' in conf.keys():
 
-    return ret
+    # return ret
