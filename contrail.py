@@ -1666,7 +1666,7 @@ def virtual_network_create(name, conf=None, **kwargs):
     vn_networks = []
     vnc_client = _auth(**kwargs)
     gsc_obj = vnc_client.project_read(fq_name=['default-domain',
-                                               'admin'])
+                                               'default-project'])
     # check if the network exists
     vn_networks_list = vnc_client._objects_list('virtual_network')
     for network in vn_networks_list['virtual-networks']:
