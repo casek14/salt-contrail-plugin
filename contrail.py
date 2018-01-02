@@ -1684,7 +1684,7 @@ def virtual_network_create(name, conf=None, **kwargs):
                                                  'default-network-ipam'])
 
     # create subnet
-    if 'ip' in conf and 'prefix' in conf.keys():
+    if 'ip' in conf and 'prefix' in conf:
         ipam_subnet_type = IpamSubnetType(subnet=SubnetType(
                                           ip_prefix=conf['ip'],
                                           ip_prefix_len=conf['prefix']))
@@ -1693,26 +1693,26 @@ def virtual_network_create(name, conf=None, **kwargs):
         vn_obj.add_network_ipam(ipam, vn_subnets_type_obj)
 
     # add route target to the network
-    if 'asn' in conf.keys() and 'target' in conf.keys():
+    if 'asn' in conf and 'target' in conf:
         route_target_list_obj = RouteTargetList(['target:'+str(conf['asn'])
                                                 + ':'
                                                 + str(conf['target'])])
         vn_obj.set_route_target_list(route_target_list_obj)
 
-    if 'external' in conf.keys():
+    if 'external' in conf:
         vn_obj.set_router_external(conf['external'])
 
-    if 'allow_transit' in conf.keys():
+    if 'allow_transit' in conf:
         vn_type_obj.set_allow_transit(conf['allow_transit'])
 
-    if 'forwarding_mode' in conf.keys():
+    if 'forwarding_mode' in conf:
         if conf['forwarding_mode'] in ['l2_l3', 'l2', 'l3']:
             vn_type_obj.set_forwarding_mode(conf['forwarding_mode'])
 
-    if 'rpf' in conf.keys():
+    if 'rpf' in conf:
         vn_type_obj.set_rpf(conf['rpf'])
 
-    if 'mirror_destination' in conf.keys():
+    if 'mirror_destination' in conf:
         vn_type_obj.set_mirror_destination(conf['mirror_destination'])
 
     vn_obj.set_virtual_network_properties(vn_type_obj)
