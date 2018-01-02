@@ -1694,9 +1694,9 @@ def virtual_network_create(name, conf=None, **kwargs):
 
     # add route target to the network
     if 'asn' in conf and 'target' in conf:
-        route_target_list_obj = RouteTargetList(['target:'+str(conf['asn'])
-                                                + ':'
-                                                + str(conf['target'])])
+        route_target_list_obj = RouteTargetList(["target:{0}:{1}"
+                                                 .format(conf['asn'],
+                                                         conf['target'])])
         vn_obj.set_route_target_list(route_target_list_obj)
 
     if 'external' in conf:
