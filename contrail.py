@@ -1683,11 +1683,6 @@ def virtual_network_create(name, conf=None, **kwargs):
                                                  'default-project',
                                                  'default-network-ipam'])
 
-    if conf is not None:
-        vnc_client.virtual_network_create(vn_obj)
-        ret['comment'] = "Virtual network "+name+" was created"
-        return ret
-
     # create subnet
     if 'ip' in conf and 'prefix' in conf.keys():
         ipam_subnet_type = IpamSubnetType(subnet=SubnetType(
