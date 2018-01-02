@@ -1669,8 +1669,9 @@ def virtual_network_create(name, conf=None, **kwargs):
                                                'default-project'])
     # check if the network exists
     vn_networks_list = vnc_client._objects_list('virtual_network')
+    fq = ['default-domain', 'default-project', name]
     for network in vn_networks_list['virtual-networks']:
-        if name == network['fq_name'][2]:
+        if fq == network['fq_name']:
             ret['comment'] = ("Virtual network with name "
                               + name + " already exists")
             return ret
@@ -1688,7 +1689,7 @@ def virtual_network_create(name, conf=None, **kwargs):
         return ret
 
     # create subnet
-    if 'ip' in conf.keys() and 'prefix' in conf.keys():
+    if 'ip' in conf and 'prefix' in conf.keys():
         ipam_subnet_type = IpamSubnetType(subnet=SubnetType(
                                           ip_prefix=conf['ip'],
                                           ip_prefix_len=conf['prefix']))
