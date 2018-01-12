@@ -11,13 +11,10 @@ def virtual_network_update(name, vn_project, conf=None, **kwargs):
 
     Parameters:
     name required - name of the new network
+    project required - which project use for vn creation
 
     conf (dict) optional:
         domain (string) optional - which domain use for vn creation
-        project (string) optional - which project use for vn creation
-        ipam_domain (string) optional - domain for ipam
-        ipam_project (string) optional - project for ipam
-        ipam_name (string) optional - ipam name
         ip_prefix (string) optional - format is xxx.xxx.xxx.xxx
         ip_prefix_len (int) optional - format is xx
         asn (int) optional - autonomus system number
@@ -42,23 +39,6 @@ def virtual_network_update(name, vn_project, conf=None, **kwargs):
     else:
         vn_domain = 'default-domain'
 
-    # check for ipam domain,default is default-domain
-    if 'ipam_domain' in conf:
-        ipam_domain = str(conf['ipam_domain'])
-    else:
-        ipam_domain = 'default-domain'
-
-    # check for ipam domain,default is default-domain
-    if 'ipam_project' in conf:
-        ipam_project = str(conf['ipam_project'])
-    else:
-        ipam_project = 'default-project'
-
-    if 'ipam_name' in conf:
-        ipam_name = conf['ipam_name']
-    else:
-        ipam_name = 'default-network-ipam'
-
     ret = {'name': name,
            'changes': {},
            'result': True,
@@ -67,18 +47,25 @@ def virtual_network_update(name, vn_project, conf=None, **kwargs):
     # list of existing vn networks
     vn_networks = []
     vnc_client = _auth(**kwargs)
-    gsc_obj = vnc_client.project_read(fq_name=[domain,
-                                               project])
+    vn_obj = None
+
+#    gsc_obj = vnc_client.project_read(fq_name=[vn_domain,
+#                                               vn_project])
     # check if the network exists
     vn_networks_list = vnc_client._objects_list('virtual_network')
-    fq = [domain, project, name]
+    fq = [vn_domain, vn_project, name]
     for network in vn_networks_list['virtual-networks']:
         if fq == network['fq_name']:
-            ret['comment'] = ("Virtual network with name "
-                              + name + " already exists")
-            return ret
+            # if network exist take it and end loop
+            vn_obj = vnc_client.virtual_network_read(fq_name=fq)
+            break
 
-    vn_obj = VirtualNetwork(name)
+    if vn_obj is None:
+        ret['comment'] = ("Network with name {0} in domain {1} and project " +
+                          " {2} does not exists").format(name, vn_domain,
+                                                         vn_project)
+        return ret
+
     vn_type_obj = VirtualNetworkType()
     # get ipam from default project and domain
     ipam = vnc_client.network_ipam_read(fq_name=[ipam_domain,
