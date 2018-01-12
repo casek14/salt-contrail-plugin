@@ -22,16 +22,24 @@ from vnc_api.vnc_api import ServiceApplianceSet, KeyValuePairs, KeyValuePair
 try:
     from vnc_api import vnc_api
     from vnc_api.vnc_api import LinklocalServiceEntryType, \
-        LinklocalServicesTypes, GlobalVrouterConfig
+        LinklocalServicesTypes, GlobalVrouterConfig, GlobalSystemConfig
     from vnc_api.gen.resource_client import VirtualRouter, AnalyticsNode, \
         ConfigNode, DatabaseNode, BgpRouter, VirtualNetwork
     from vnc_api.gen.resource_xsd import AddressFamilies, BgpSessionAttributes, \
-        BgpSession, BgpPeeringAttributes, BgpRouterParams, VirtualNetworkType, \
-        IpamSubnetType, SubnetType, VnSubnetsType, RouteTargetList
+        BgpSession, BgpPeeringAttributes, BgpRouterParams, AuthenticationData, \
+        AuthenticationKeyItem, VirtualNetworkType, IpamSubnetType, SubnetType, \
+        VnSubnetsType, RouteTargetList
 
     HAS_CONTRAIL = True
 except ImportError:
     HAS_CONTRAIL = False
+
+
+try:
+    from vnc_api.gen.resource_xsd import GracefulRestartParametersType
+    HAS_OLD = False
+except ImportError:
+    HAS_OLD = True
 
 __opts__ = {}
 
@@ -704,7 +712,7 @@ def global_vrouter_config_get(name, **kwargs):
     return ret
 
 
-def global_vrouter_config_create(name, parent_type, encap_priority, vxlan_vn_id_mode, *fq_names, **kwargs):
+def global_vrouter_config_create(name, parent_type, encap_priority, vxlan_vn_id_mode, flow_export_rate, *fq_names, **kwargs):
     '''
     Create specific Contrail global vrouter config
 
@@ -732,6 +740,7 @@ def global_vrouter_config_create(name, parent_type, encap_priority, vxlan_vn_id_
             fq_name=fq_names,
             vxlan_network_identifier_mode=vxlan_vn_id_mode,
             parent_type=parent_type,
+            flow_export_rate=flow_export_rate,
         )
         if __opts__['test']:
             ret['result'] = None
@@ -1007,7 +1016,7 @@ def bgp_router_get(name, **kwargs):
     return ret
 
 
-def bgp_router_create(name, type, ip_address, asn=64512, **kwargs):
+def bgp_router_create(name, type, ip_address, asn=64512, key_type=None, key=None, **kwargs):
     '''
     Create specific Contrail control node
 
@@ -1029,6 +1038,9 @@ def bgp_router_create(name, type, ip_address, asn=64512, **kwargs):
     if type != 'control-node':
         address_families.remove('erm-vpn')
 
+    key_type = None if key_type == 'None' else key_type
+    key = None if key == 'None' else key
+
     bgp_addr_fams = AddressFamilies(address_families)
     bgp_sess_attrs = [
        BgpSessionAttributes(address_families=bgp_addr_fams)]
@@ -1036,10 +1048,16 @@ def bgp_router_create(name, type, ip_address, asn=64512, **kwargs):
     bgp_peering_attrs = BgpPeeringAttributes(session=bgp_sessions)
     rt_inst_obj = _get_rt_inst_obj(vnc_client)
 
+    bgp_auth_data = None
+
     if type == 'control-node':
         vendor = 'contrail'
     elif type == 'router':
         vendor = 'mx'
+        if key_type == 'md5':
+            key_id = 0
+            key_items = AuthenticationKeyItem(key_id, key)
+            bgp_auth_data = AuthenticationData(key_type, [key_items])
     else:
         vendor = 'unknown'
 
@@ -1047,7 +1065,8 @@ def bgp_router_create(name, type, ip_address, asn=64512, **kwargs):
                                     vendor=vendor, autonomous_system=int(asn),
                                     identifier=_get_ip(ip_address),
                                     address=_get_ip(ip_address),
-                                    port=179, address_families=bgp_addr_fams)
+                                    port=179, address_families=bgp_addr_fams,
+                                    auth_data=bgp_auth_data)
 
     bgp_router_objs = bgp_router_list(**kwargs)
     if name in bgp_router_objs:
@@ -1059,6 +1078,18 @@ def bgp_router_create(name, type, ip_address, asn=64512, **kwargs):
             ret['changes'].update({"vendor": {'old': bgp_router_obj.bgp_router_parameters.vendor, 'new': vendor}})
         if bgp_router_obj.bgp_router_parameters.address != ip_address:
             ret['changes'].update({"ip_address": {'old': bgp_router_obj.bgp_router_parameters.address, 'new': ip_address}})
+        try:
+            if bgp_router_obj.bgp_router_parameters.auth_data.key_type != key_type:
+                ret['changes'].update({"key_type": {'old': bgp_router_obj.bgp_router_parameters.auth_data.key_type, 'new': key_type}})
+        except:
+            if key_type != None:
+                ret['changes'].update({"key_type": {'old': None, 'new': key_type}})
+        if key_type == 'md5':
+            try:
+                if bgp_router_obj.bgp_router_parameters.auth_data.key_items[0].key != key:
+                    ret['changes'].update({"key_type": {'old': bgp_router_obj.bgp_router_parameters.auth_data.key_items[0].key, 'new': key}})
+            except:
+                ret['changes'].update({"key_type": {'old': None, 'new': key}})
 
         if len(ret['changes']) == 0:
             return ret
@@ -1517,6 +1548,142 @@ def virtual_network_get(name, **kwargs):
     return ret
 
 
+def virtual_network_create(name, conf=None, **kwargs):
+    '''
+    Create Contrail virtual network
+    CLI Example:
+    .. code-block:: bash
+    salt '*' contrail.virtual_network_create name
+
+    salt.cmdRun(pepperEnv, 'ntw01*', 'salt-call contrail.virtual_network_create
+    "testicek" "{"external":"True","ip":"172.16.111.0","prefix":24,
+    "asn":64512,"target":10000}" ')
+
+    Parameters:
+    name required - name of the new network
+
+    conf (dict) optional:
+        domain (string) optional - which domain use for vn creation
+        project (string) optional - which project use for vn creation
+        ipam_domain (string) optional - domain for ipam
+        ipam_project (string) optional - project for ipam
+        ipam_name (string) optional - ipam name
+        ip_prefix (string) optional - format is xxx.xxx.xxx.xxx
+        ip_prefix_len (int) optional - format is xx
+        asn (int) optional - autonomus system number
+        target (int) optional - route target number
+        external (boolean) optional - set if network is external
+
+        allow_transit (boolean) optional - enable allow transit
+        forwarding_mode (any of ['l2_l3','l2','l3']) optional
+            - packet forwarding mode for this virtual network
+        rpf (any of ['enabled','disabled']) optional
+            - Enable or disable Reverse Path Forwarding check
+        for this network
+        mirror_destination (boolean) optional
+            - Mark the vn as mirror destination network
+    '''
+    if conf is None:
+        conf = {}
+
+    # check for domain, is missing set to default-domain
+    if 'domain' in conf:
+        vn_domain = str(conf['domain'])
+    else:
+        vn_domain = 'default-domain'
+    # check for project, is missing set to admin
+    if 'project' in conf:
+        vn_project = str(conf['project'])
+    else:
+        vn_project = 'admin'
+    # check for ipam domain,default is default-domain
+    if 'ipam_domain' in conf:
+        ipam_domain = str(conf['ipam_domain'])
+    else:
+        ipam_domain = 'default-domain'
+    # check for ipam domain,default is default-domain
+    if 'ipam_project' in conf:
+        ipam_project = str(conf['ipam_project'])
+    else:
+        ipam_project = 'default-project'
+
+    if 'ipam_name' in conf:
+        ipam_name = conf['ipam_name']
+    else:
+        ipam_name = 'default-network-ipam'
+
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    # list of existing vn networks
+    vn_networks = []
+    vnc_client = _auth(**kwargs)
+    gsc_obj = vnc_client.project_read(fq_name=[domain,
+                                               project])
+    # check if the network exists
+    vn_networks_list = vnc_client._objects_list('virtual_network')
+    fq = [domain, project, name]
+    for network in vn_networks_list['virtual-networks']:
+        if fq == network['fq_name']:
+            ret['comment'] = ("Virtual network with name "
+                              + name + " already exists")
+            return ret
+
+    vn_obj = VirtualNetwork(name)
+    vn_type_obj = VirtualNetworkType()
+    # get ipam from default project and domain
+    ipam = vnc_client.network_ipam_read(fq_name=[ipam_domain,
+                                                 ipam_project,
+                                                 ipam_name])
+
+    # create subnet
+    if 'ip_prefix' in conf and 'ip_prefix_len' in conf:
+        ipam_subnet_type = IpamSubnetType(subnet=SubnetType(
+                                          ip_prefix=conf['ip_prefix'],
+                                          ip_prefix_len=conf['ip_prefix_len']))
+
+        vn_subnets_type_obj = VnSubnetsType(ipam_subnets=[ipam_subnet_type])
+        vn_obj.add_network_ipam(ipam, vn_subnets_type_obj)
+
+    # add route target to the network
+    if 'asn' in conf and 'target' in conf:
+        route_target_list_obj = RouteTargetList(["target:{0}:{1}"
+                                                 .format(conf['asn'],
+                                                         conf['target'])])
+        vn_obj.set_route_target_list(route_target_list_obj)
+
+    if 'external' in conf:
+        vn_obj.set_router_external(conf['external'])
+
+    if 'allow_transit' in conf:
+        vn_type_obj.set_allow_transit(conf['allow_transit'])
+
+    if 'forwarding_mode' in conf:
+        if conf['forwarding_mode'] in ['l2_l3', 'l2', 'l3']:
+            vn_type_obj.set_forwarding_mode(conf['forwarding_mode'])
+
+    if 'rpf' in conf:
+        vn_type_obj.set_rpf(conf['rpf'])
+
+    if 'mirror_destination' in conf:
+        vn_type_obj.set_mirror_destination(conf['mirror_destination'])
+
+    vn_obj.set_virtual_network_properties(vn_type_obj)
+
+    # create virtual network
+    if __opts__['test']:
+        ret['result'] = None
+        ret['comment'] = ("Virtual network with name {0} will be created"
+                          .format(name))
+    else:
+        vnc_client.virtual_network_create(vn_obj)
+        ret['comment'] = ("Virtual network with name {0} was created"
+                          .format(name))
+    return ret
+
+
 def service_appliance_set_list(**kwargs):
     '''
     Return a list of Contrail service appliance set
@@ -1622,145 +1789,170 @@ def service_appliance_set_delete(name, **kwargs):
         ret['changes'] = {'ServiceApplianceSet': {'old': name, 'new': ''}}
     return ret
 
-
-def virtual_network_create(name, conf=None, **kwargs):
+def global_system_config_list(**kwargs):
     '''
-    Create Contrail virtual network
+    Return a list of all global system configs
+
     CLI Example:
+
     .. code-block:: bash
-    salt '*' contrail.virtual_network_create name
 
-    salt.cmdRun(pepperEnv, 'ntw01*', 'salt-call contrail.virtual_network_create
-    "testicek" "{"external":"True","ip":"172.16.111.0","prefix":24,
-    "asn":64512,"target":10000}" ')
-
-    Parameters:
-    name required - name of the new network
-
-    conf (dict) optional:
-        domain (string) optional - which domain use for creation
-        project (string) optional - which project use for creation
-        ipam (string) optional - which ipam use for network creation
-        ip (string) optional - format is xxx.xxx.xxx.xxx
-        prefix (int) optional - formal is /xx
-        asn (int) optional - autonomus system number
-        target (int) optional - route target number
-        external (boolean) optional - set if network is external
-
-        allow_transit (boolean) optional - enable allow transit
-        forwarding_mode (any of ['l2_l3','l2','l3']) optional
-            - packet forwarding mode for this virtual network
-        rpf (any of ['enabled','disabled']) optional
-            - Enable or disable Reverse Path Forwarding check
-        for this network
-        mirror_destination (boolean) optional
-            - Mark the vn as mirror destination network
+        salt '*' contrail.global_system_config_list
     '''
 
-    ret = {'name': name,
-           'changes': {},
-           'result': True,
-           'comment': ''}
-
-    # list of existing vn networks
-    vn_networks = []
+    ret = {}
     vnc_client = _auth(**kwargs)
-    gsc_obj = vnc_client.project_read(fq_name=['default-domain',
-                                               'default-project'])
-    # check if the network exists
-    vn_networks_list = vnc_client._objects_list('virtual_network')
-    fq = ['default-domain', 'default-project', name]
-    for network in vn_networks_list['virtual-networks']:
-        if fq == network['fq_name']:
-            ret['comment'] = ("Virtual network with name "
-                              + name + " already exists")
-            return ret
-
-    vn_obj = VirtualNetwork(name)
-    vn_type_obj = VirtualNetworkType()
-    # get ipam from default project and domain
-    ipam = vnc_client.network_ipam_read(fq_name=['default-domain',
-                                                 'default-project',
-                                                 'default-network-ipam'])
-
-    # create subnet
-    if 'ip' in conf and 'prefix' in conf:
-        ipam_subnet_type = IpamSubnetType(subnet=SubnetType(
-                                          ip_prefix=conf['ip'],
-                                          ip_prefix_len=conf['prefix']))
-
-        vn_subnets_type_obj = VnSubnetsType(ipam_subnets=[ipam_subnet_type])
-        vn_obj.add_network_ipam(ipam, vn_subnets_type_obj)
-
-    # add route target to the network
-    if 'asn' in conf and 'target' in conf:
-        route_target_list_obj = RouteTargetList(["target:{0}:{1}"
-                                                 .format(conf['asn'],
-                                                         conf['target'])])
-        vn_obj.set_route_target_list(route_target_list_obj)
-
-    if 'external' in conf:
-        vn_obj.set_router_external(conf['external'])
-
-    if 'allow_transit' in conf:
-        vn_type_obj.set_allow_transit(conf['allow_transit'])
-
-    if 'forwarding_mode' in conf:
-        if conf['forwarding_mode'] in ['l2_l3', 'l2', 'l3']:
-            vn_type_obj.set_forwarding_mode(conf['forwarding_mode'])
-
-    if 'rpf' in conf:
-        vn_type_obj.set_rpf(conf['rpf'])
-
-    if 'mirror_destination' in conf:
-        vn_type_obj.set_mirror_destination(conf['mirror_destination'])
-
-    vn_obj.set_virtual_network_properties(vn_type_obj)
-
-    # create virtual network
-    if __opts__['test']:
-        ret['result'] = None
-        ret['comment'] = "Virtual network with name " + name + " will be created"
-    else:
-        vnc_client.virtual_network_create(vn_obj)
-        ret['comment'] = "Virtual network with name " + name + " was created"
+    gsysconfs = vnc_client._objects_list('global-system-config', detail=True)
+    for gsysconf in gsysconfs:
+        ret[gsysconf.name] = gsysconf.__dict__
     return ret
 
 
-def virtual_network_update(name, conf=None, **kwargs):
+def global_system_config_get(name, **kwargs):
     '''
-    Update existing virtual network
+    Return a specific Contrail global system config
 
     CLI Example:
 
     .. code-block:: bash
 
-    salt '*' contrail.virtual_network_update
+        salt '*' contrail.global_system_config_get name
     '''
+    ret = {}
+    vnc_client = _auth(**kwargs)
+    gsc_objs = vnc_client._objects_list('global-system-config', detail=True)
+    for gsc_obj in gsc_objs:
+        if name == gsc_obj.name:
+                ret[name] = gsc_obj.__dict__
+    if len(ret) == 0:
+        return {'Error': 'Error in retrieving global system config.'}
+    return ret
 
+
+def global_system_config_create(name, ans=64512, grp=None,  **kwargs):
+    '''
+    Create Contrail global system config
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' contrail.global_system_config_create name=default-global-system-config ans=64512
+    '''
     ret = {'name': name,
            'changes': {},
            'result': True,
            'comment': ''}
-
-    vn_networks = []
     vnc_client = _auth(**kwargs)
-    gsc_obj = vnc_client.project_read(fq_name=['default-domain',
-                                               'admin'])
-    
-    # get list of the networks
-    vn_objs = vnc_client._objects_list('virtual-network', detail=True)
-    vn_obj = None
-    for vn in vn_objs:
-        if vn.get_fq_name[2] == name:
-            vn_obj = vn
-            break
 
-    if vn_obj == None:
-        ret['comment'] = ("Virtual network with name "
-                          + name + " does not exist")
-        return ret
+    gsc_objs = global_system_config_list(**kwargs)
+    if name in gsc_objs:
+        config_obj = vnc_client.global_system_config_read(fq_name=[name])
+        if config_obj.graceful_restart_parameters and not HAS_OLD:
+            curr_grp = str(config_obj.graceful_restart_parameters).replace(" ", "").split(",")
+            curr_grpd = dict(item.split('=') for item in curr_grp)
+        else:
+            curr_grpd = None
 
-    # if 'ip' in conf.keys() and 'prefix' in conf.keys():
+        if grp and 'enable' in grp and not HAS_OLD:
+            grp_obj = GracefulRestartParametersType()
+            if 'enable' in grp:
+                grp_obj.enable = grp['enable']
+                if curr_grpd and str(grp['enable']) != str(curr_grpd['enable']):
+                    ret['changes']['enable'] = {"from": str(curr_grpd['enable']), "to": str(grp['enable'])}
+                elif not curr_grpd:
+                    ret['changes']['enable'] = {"from": None, "to": grp['enable']}
+            if 'restart_time' in grp:
+                grp_obj.restart_time = grp['restart_time']
+                if curr_grpd and grp['restart_time'] != int(curr_grpd['restart_time']):
+                    ret['changes']['restart_time'] = {"from": int(curr_grpd['restart_time']), "to": grp['restart_time']}
+                elif not curr_grpd:
+                    ret['changes']['restart_time'] = {"from": None, "to": grp['restart_time']}
+            if 'end_of_rib_timeout' in grp:
+                grp_obj.end_of_rib_timeout = grp['end_of_rib_timeout']
+                if curr_grpd and grp['end_of_rib_timeout'] != int(curr_grpd['end_of_rib_timeout']):
+                    ret['changes']['end_of_rib_timeout'] = {"from": int(curr_grpd['end_of_rib_timeout']), "to": grp['end_of_rib_timeout']}
+                elif not curr_grpd:
+                    ret['changes']['end_of_rib_timeout'] = {"from": None, "to": grp['end_of_rib_timeout']}
+            if 'bgp_helper_enable' in grp:
+                grp_obj.bgp_helper_enable = grp['bgp_helper_enable']
+                if curr_grpd and str(grp['bgp_helper_enable']) != str(curr_grpd['bgp_helper_enable']):
+                    ret['changes']['bgp_helper_enable'] = {"from": str(curr_grpd['bgp_helper_enable']), "to": grp['bgp_helper_enable']}
+                elif not curr_grpd:
+                    ret['changes']['bgp_helper_enable'] = {"from": None, "to": grp['bgp_helper_enable']}
+            if 'xmpp_helper_enable' in grp:
+                grp_obj.xmpp_helper_enable = grp['xmpp_helper_enable']
+                if curr_grpd and str(grp['xmpp_helper_enable']) != str(curr_grpd['xmpp_helper_enable']):
+                    ret['changes']['xmpp_helper_enable'] = {"from": str(curr_grpd['xmpp_helper_enable']), "to": grp['xmpp_helper_enable']}
+                elif not curr_grpd:
+                    ret['changes']['xmpp_helper_enable'] = {"from": None, "to": grp['xmpp_helper_enable']}
+            if 'long_lived_restart_time' in grp:
+                grp_obj.long_lived_restart_time = grp['long_lived_restart_time']
+                if curr_grpd and grp['long_lived_restart_time'] != int(curr_grpd['long_lived_restart_time']):
+                    ret['changes']['long_lived_restart_time'] = {"from": int(curr_grpd['long_lived_restart_time']), "to": grp['long_lived_restart_time']}
+                elif not curr_grpd:
+                    ret['changes']['long_lived_restart_time'] = {"from": None, "to": grp['long_lived_restart_time']}
+        else:
+            grp_obj = None
 
-    # return ret
+        config_obj.graceful_restart_parameters = grp_obj
+
+        if ans:
+            if config_obj.autonomous_system != ans:
+                ret['changes']['autonomous_system'] = {"from": config_obj.autonomous_system, "to": ans}
+                config_obj.autonomous_system = ans
+
+        vnc_client.global_system_config_update(config_obj)
+        ret['comment'] = 'Global system config  ' + name + ' has been updated'
+    else:
+        config_obj = GlobalSystemConfig(name=name)
+        if grp and not HAS_OLD:
+            grp_obj = GracefulRestartParametersType()
+            if 'enable' in grp:
+                grp_obj.enable = grp['enable']
+            if 'restart_time' in grp:
+                grp_obj.restart_time = grp['restart_time']
+            if 'end_of_rib_timeout' in grp:
+                grp_obj.end_of_rib_timeout = grp['end_of_rib_timeout']
+            if 'bgp_helper_enable' in grp:
+                grp_obj.bgp_helper_enable = grp['bgp_helper_enable']
+            if 'xmpp_helper_enable' in grp:
+                grp_obj.xmpp_helper_enable = grp['xmpp_helper_enable']
+            if 'long_lived_restart_time' in grp:
+                grp_obj.long_lived_restart_time = grp['long_lived_restart_time']
+            config_obj.graceful_restart_parameters = grp_obj
+        if ans:
+            config_obj.autonomous_system = ans
+
+        vnc_client.global_system_config_create(config_obj)
+        ret['changes'] = {"created": "new"}
+        ret['comment'] = 'Global system config  ' + name + ' has been created '
+
+    return ret
+
+
+def global_system_config_delete(name, **kwargs):
+    '''
+    Delete specific Contrail global system config
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' contrail.global_system_config_delete name
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+    vnc_client = _auth(**kwargs)
+
+    gsc_obj = GlobalSystemConfig(name)
+    if __opts__['test']:
+        ret['result'] = None
+        ret['comment'] = "Global system config " + name + " will be deleted"
+    else:
+        vnc_client.global_system_config_delete(fq_name=gsc_obj.get_fq_name())
+        ret['comment'] = "GlobalSystemConfig " + name + " has been deleted"
+        ret['changes'] = {'GlobalSystemConfig': {'old': name, 'new': ''}}
+    return ret
