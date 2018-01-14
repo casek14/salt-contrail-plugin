@@ -49,8 +49,6 @@ def virtual_network_update(name, vn_project, conf=None, **kwargs):
     vnc_client = _auth(**kwargs)
     vn_obj = None
 
-#    gsc_obj = vnc_client.project_read(fq_name=[vn_domain,
-#                                               vn_project])
     # check if the network exists
     vn_networks_list = vnc_client._objects_list('virtual_network')
     fq = [vn_domain, vn_project, name]
@@ -64,22 +62,28 @@ def virtual_network_update(name, vn_project, conf=None, **kwargs):
         ret['comment'] = ("Network with name {0} in domain {1} and project " +
                           " {2} does not exists").format(name, vn_domain,
                                                          vn_project)
+        # maybe set result to false ret
+        # ret ['result'] = False
         return ret
-
-    vn_type_obj = VirtualNetworkType()
-    # get ipam from default project and domain
-    ipam = vnc_client.network_ipam_read(fq_name=[ipam_domain,
-                                                 ipam_project,
-                                                 ipam_name])
-
+    changes = {}
     # create subnet
     if 'ip_prefix' in conf and 'ip_prefix_len' in conf:
+        old_ip = vn_obj.getIpamSubnetType().getSubnetType().get_ip_prefix()
+        old_prefix = vn_obj.getIpamSubnetType().getSubnetType().get_ip_prefix_len()
+
+        if old_ip != conf['ip_prefix']:
+            changes['ip_prefix'] = {'from': old_ip, 'to': conf[ip_prefix]}
+
+        if old_prefix != conf['ip_prefix_len']:
+            changes['ip_prefix_len'] = {'from': old_prefix, 
+                                        'to': conf[ip_prefix_len]}
+
         ipam_subnet_type = IpamSubnetType(subnet=SubnetType(
                                           ip_prefix=conf['ip_prefix'],
                                           ip_prefix_len=conf['ip_prefix_len']))
 
         vn_subnets_type_obj = VnSubnetsType(ipam_subnets=[ipam_subnet_type])
-        vn_obj.add_network_ipam(ipam, vn_subnets_type_obj)
+        vn_obj.set_Vn
 
     # add route target to the network
     if 'asn' in conf and 'target' in conf:
@@ -104,7 +108,7 @@ def virtual_network_update(name, vn_project, conf=None, **kwargs):
     if 'mirror_destination' in conf:
         vn_type_obj.set_mirror_destination(conf['mirror_destination'])
 
-    vn_obj.set_virtual_network_properties(vn_type_obj)
+#    vn_obj.set_virtual_network_properties(vn_type_obj)
 
     # create virtual network
     if __opts__['test']:
