@@ -1690,6 +1690,10 @@ def virtual_network_create(name, conf=None, **kwargs):
                           .format(name))
     else:
         vnc_client.virtual_network_create(vn_obj)
+
+        if 'external' in conf:
+            pool_name = name + "-pool"
+            _create_floating_ip_pool(pool_name, vn_obj, prj_obj, **kwargs)
         ret['comment'] = ("Virtual network with name {0} was created"
                           .format(name))
     return ret
