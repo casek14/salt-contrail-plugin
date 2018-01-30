@@ -1956,3 +1956,11 @@ def global_system_config_delete(name, **kwargs):
         ret['comment'] = "GlobalSystemConfig " + name + " has been deleted"
         ret['changes'] = {'GlobalSystemConfig': {'old': name, 'new': ''}}
     return ret
+
+def list_floating_pools(**kwargs)
+
+    vnc_client = _auth(**kwargs)
+    pools = vnc_client.floating_ip_pools_list()
+
+    for pool in pools:
+        pool.dump()
