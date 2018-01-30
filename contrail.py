@@ -1957,10 +1957,14 @@ def global_system_config_delete(name, **kwargs):
         ret['changes'] = {'GlobalSystemConfig': {'old': name, 'new': ''}}
     return ret
 
-def list_floating_pools(**kwargs)
+def list_floating_pools(**kwargs):
 
     vnc_client = _auth(**kwargs)
     pools = vnc_client.floating_ip_pools_list()
+    # list of floating ip pools objects
+    fp_list = []
 
-    for pool in pools:
-        pool.dump()
+    for pool in vnc_client.floating_ip_pools_list()['floating-ip-pools']:
+        fp_list.append(vnc_client.floating_ip_pool_read(pool['fq_name']))
+        fp_list[len(fp_list) - 1].dump()
+        print ('\n')
