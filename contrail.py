@@ -24,7 +24,7 @@ try:
     from vnc_api.vnc_api import LinklocalServiceEntryType, \
         LinklocalServicesTypes, GlobalVrouterConfig, GlobalSystemConfig
     from vnc_api.gen.resource_client import VirtualRouter, AnalyticsNode, \
-        ConfigNode, DatabaseNode, BgpRouter, VirtualNetwork
+        ConfigNode, DatabaseNode, BgpRouter, VirtualNetwork, FloatingIpPool
     from vnc_api.gen.resource_xsd import AddressFamilies, BgpSessionAttributes, \
         BgpSession, BgpPeeringAttributes, BgpRouterParams, AuthenticationData, \
         AuthenticationKeyItem, VirtualNetworkType, IpamSubnetType, SubnetType, \
@@ -1978,7 +1978,7 @@ def list_floating_ip_pools(**kwargs):
         print('\n')
 
 
-def create_floating_ip_pool(name, vn_obj, domain, project, **kwargs):
+def create_floating_ip_pool(name, vn_name, domain, project, **kwargs):
     '''
     Create floating ip pool
 
@@ -1993,21 +1993,12 @@ def create_floating_ip_pool(name, vn_obj, domain, project, **kwargs):
            'comment': ''}
 
     vnc_client = _auth(**kwargs)
+    vn_obj = vnc_client.virtual_network_read(fqname=['default-domain',
+                                                     'admin',
+                                                     vn_name])
+    prj_obj = vnc_client.project_read(fq_name=[domain,
+                                               project])
     fip_obj = FloatingIpPool(name=name, parrent_obj=vn_obj)
+    prj_obj.add_floatin_ip_pool(fip_obj)
     vnc_client.floating_ip_pool_create(fip_obj) 
-
-
-def create_floating_ip_pool_test(name, vn_name, domain, project, **kwargs):
-    '''
-    Create floating ip pool
-
-    CLI Example:
-    .. code-block:: bash
-    salt '*' contrail.create_floating_ip_pool
-    '''
-
-    vnc_client = _auth(**kwargs)
-    vn_obj = vnc_client.virtual_network_read(fqname=['default-domain','admin',vn_name])
-    fip_obj = FloatingIpPool(name=name, parrent_obj=vn_obj)
-    vnc_client.floating_ip_pool_create(fip_obj) 
-    self.list_floating_ip_pools()
+    vnc_client.project_update(prj_obj)
