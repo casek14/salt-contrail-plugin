@@ -1957,8 +1957,15 @@ def global_system_config_delete(name, **kwargs):
         ret['changes'] = {'GlobalSystemConfig': {'old': name, 'new': ''}}
     return ret
 
-def list_floating_pools(**kwargs):
 
+def list_floating_ip_pools(**kwargs):
+    '''
+    List all floating ip pools
+
+    CLI Example:
+    .. code-block:: bash
+        salt '*' contrail.list_floating_ip_pools
+    '''
     vnc_client = _auth(**kwargs)
     pools = vnc_client.floating_ip_pools_list()
     # list of floating ip pools objects
@@ -1966,5 +1973,41 @@ def list_floating_pools(**kwargs):
 
     for pool in vnc_client.floating_ip_pools_list()['floating-ip-pools']:
         fp_list.append(vnc_client.floating_ip_pool_read(pool['fq_name']))
+        # print given pool
         fp_list[len(fp_list) - 1].dump()
-        print ('\n')
+        print('\n')
+
+
+def create_floating_ip_pool(name, vn_obj, domain, project, **kwargs):
+    '''
+    Create floating ip pool
+
+    CLI Example:
+    .. code-block:: bash
+    salt '*' contrail.create_floating_ip_pool
+    '''
+
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    vnc_client = _auth(**kwargs)
+    fip_obj = FloatingIpPool(name=name, parrent_obj=vn_obj)
+    vnc_client.floating_ip_pool_create(fip_obj) 
+
+
+def create_floating_ip_pool_test(name, vn_name, domain, project, **kwargs):
+    '''
+    Create floating ip pool
+
+    CLI Example:
+    .. code-block:: bash
+    salt '*' contrail.create_floating_ip_pool
+    '''
+
+    vnc_client = _auth(**kwargs)
+    vn_obj = vnc_client.virtual_network_read(fqname=['default-domain','admin',vn_name])
+    fip_obj = FloatingIpPool(name=name, parrent_obj=vn_obj)
+    vnc_client.floating_ip_pool_create(fip_obj) 
+    self.list_floating_ip_pools()
