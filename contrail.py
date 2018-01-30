@@ -1999,6 +1999,6 @@ def create_floating_ip_pool(name, vn_name, domain, project, **kwargs):
     prj_obj = vnc_client.project_read(fq_name=[domain,
                                                project])
     fip_obj = FloatingIpPool(name=name, parrent_obj=vn_obj)
-    prj_obj.add_floatin_ip_pool(fip_obj)
+    prj_obj.add_floating_ip_pool(fip_obj)
     vnc_client.floating_ip_pool_create(fip_obj) 
     vnc_client.project_update(prj_obj)
