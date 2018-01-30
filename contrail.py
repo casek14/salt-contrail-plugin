@@ -110,6 +110,15 @@ def _get_ip(ip_w_pfx):
     return str(IPNetwork(ip_w_pfx).ip)
 
 
+def _create_floating_ip_pool(name, vn_obj, vn_prj, **kwargs):
+    vnc_client = _auth(**kwargs)
+
+    fip_obj = FloatingIpPool(name=name, parent_obj=vn_obj)
+    prj_obj.add_floating_ip_pool(fip_obj)
+    vnc_client.floating_ip_pool_create(fip_obj) 
+    vnc_client.project_update(prj_obj)
+
+
 def virtual_router_list(**kwargs):
     '''
     Return a list of all Contrail virtual routers
@@ -1656,6 +1665,8 @@ def virtual_network_create(name, conf=None, **kwargs):
 
     if 'external' in conf:
         vn_obj.set_router_external(conf['external'])
+        pool_name = name + "-pool"
+        _create_floating_ip_pool(pool_name, vn_obj, prj,obj, **kwargs)
 
     if 'allow_transit' in conf:
         vn_type_obj.set_allow_transit(conf['allow_transit'])
@@ -1978,27 +1989,3 @@ def list_floating_ip_pools(**kwargs):
         print('\n')
 
 
-def create_floating_ip_pool(name, vn_name, domain, project, **kwargs):
-    '''
-    Create floating ip pool
-
-    CLI Example:
-    .. code-block:: bash
-    salt '*' contrail.create_floating_ip_pool
-    '''
-
-    ret = {'name': name,
-           'changes': {},
-           'result': True,
-           'comment': ''}
-
-    vnc_client = _auth(**kwargs)
-    vn_obj = vnc_client.virtual_network_read(fq_name=['default-domain',
-                                                     'admin',
-                                                     vn_name])
-    prj_obj = vnc_client.project_read(fq_name=[domain,
-                                               project])
-    fip_obj = FloatingIpPool(name=name, parent_obj=vn_obj)
-    prj_obj.add_floating_ip_pool(fip_obj)
-    vnc_client.floating_ip_pool_create(fip_obj) 
-    vnc_client.project_update(prj_obj)
