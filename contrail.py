@@ -1666,7 +1666,7 @@ def virtual_network_create(name, conf=None, **kwargs):
     if 'external' in conf:
         vn_obj.set_router_external(conf['external'])
         pool_name = name + "-pool"
-        _create_floating_ip_pool(pool_name, vn_obj, prj,obj, **kwargs)
+        _create_floating_ip_pool(pool_name, vn_obj, prj_obj, **kwargs)
 
     if 'allow_transit' in conf:
         vn_type_obj.set_allow_transit(conf['allow_transit'])
