@@ -110,7 +110,7 @@ def _get_ip(ip_w_pfx):
     return str(IPNetwork(ip_w_pfx).ip)
 
 
-def _create_floating_ip_pool(name, vn_obj, vn_prj, **kwargs):
+def _create_floating_ip_pool(name, vn_obj, prj_obj, **kwargs):
     vnc_client = _auth(**kwargs)
 
     fip_obj = FloatingIpPool(name=name, parent_obj=vn_obj)
