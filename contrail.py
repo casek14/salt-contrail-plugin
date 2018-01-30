@@ -1993,7 +1993,7 @@ def create_floating_ip_pool(name, vn_name, domain, project, **kwargs):
            'comment': ''}
 
     vnc_client = _auth(**kwargs)
-    vn_obj = vnc_client.virtual_network_read(fqname=['default-domain',
+    vn_obj = vnc_client.virtual_network_read(fq_name=['default-domain',
                                                      'admin',
                                                      vn_name])
     prj_obj = vnc_client.project_read(fq_name=[domain,
