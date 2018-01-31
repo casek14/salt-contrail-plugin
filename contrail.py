@@ -110,12 +110,11 @@ def _get_ip(ip_w_pfx):
     return str(IPNetwork(ip_w_pfx).ip)
 
 
-def _create_floating_ip_pool(name, vn_obj, prj_obj, **kwargs):
+def _create_floating_ip_pool(name, vn_obj, **kwargs):
     vnc_client = _auth(**kwargs)
     # create floating ip pool
     fip_obj = FloatingIpPool(name=name, parent_obj=vn_obj)
     vnc_client.floating_ip_pool_create(fip_obj)
-    vnc_client.project_update(prj_obj)
 
 
 def virtual_router_list(**kwargs):
