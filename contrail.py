@@ -1692,7 +1692,6 @@ def virtual_network_create(name, conf=None, **kwargs):
                 pool_name = 'default'
                 _create_floating_ip_pool(pool_name,
                                          vn_obj,
-                                         prj_obj,
                                          **kwargs)
 
         ret['comment'] = ("Virtual network with name {0} was created"
