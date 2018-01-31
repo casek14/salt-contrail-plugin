@@ -112,10 +112,9 @@ def _get_ip(ip_w_pfx):
 
 def _create_floating_ip_pool(name, vn_obj, prj_obj, **kwargs):
     vnc_client = _auth(**kwargs)
-
+    # create floating ip pool
     fip_obj = FloatingIpPool(name=name, parent_obj=vn_obj)
-    prj_obj.add_floating_ip_pool(fip_obj)
-    vnc_client.floating_ip_pool_create(fip_obj) 
+    vnc_client.floating_ip_pool_create(fip_obj)
     vnc_client.project_update(prj_obj)
 
 
@@ -1688,10 +1687,15 @@ def virtual_network_create(name, conf=None, **kwargs):
                           .format(name))
     else:
         vnc_client.virtual_network_create(vn_obj)
-
+        # if network is external create floating ip pool
         if 'external' in conf:
-            pool_name = name + "-pool"
-            _create_floating_ip_pool(pool_name, vn_obj, prj_obj, **kwargs)
+            if conf['external']:
+                pool_name = 'default'
+                _create_floating_ip_pool(pool_name,
+                                         vn_obj,
+                                         prj_obj,
+                                         **kwargs)
+
         ret['comment'] = ("Virtual network with name {0} was created"
                           .format(name))
     return ret
@@ -1989,5 +1993,3 @@ def list_floating_ip_pools(**kwargs):
         # print given pool
         fp_list[len(fp_list) - 1].dump()
         print('\n')
-
-
