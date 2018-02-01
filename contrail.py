@@ -2014,7 +2014,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
     global_access (int) - Permission rights for others
     projects (list) - list of ShareType(tenant_name,tennat_permissions)
     '''
-    ret = {'name': name,
+    ret = {'name': vn_name + "-default pool",
            'changes': {},
            'result': True,
            'comment': ''}
