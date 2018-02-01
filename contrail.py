@@ -2068,10 +2068,10 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                                                 tenant_access=share[1]))
                     # show changes
                     n = 'share-'+share[0]
-                    old = "permission for project " + share[0] +
-                          " is " + item.get_tenant_access()
-                    new = "permission for project " + share[0] +
-                          " is " + share[1]
+                    old = ("permission for project " + share[0] +
+                          " is " + item.get_tenant_access())
+                    new = ("permission for project " + share[0] +
+                          " is " + share[1])
                     changes[n] = {'old' : old, 'new' : new }
                     break
             else:
@@ -2090,8 +2090,8 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                 final_list.append(ShareType(tenant=item[0],
                                             tenant_access=item[1]))
                 name = 'share-' + item[0]
-                changes['name'] = name + " will be added with permissions " +
-                                  item[1]
+                changes['name'] = (name + " will be added with permissions " +
+                                  item[1])
                 break
 
     if __opts__['test']:
