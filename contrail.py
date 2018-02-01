@@ -28,7 +28,7 @@ try:
     from vnc_api.gen.resource_xsd import AddressFamilies, BgpSessionAttributes, \
         BgpSession, BgpPeeringAttributes, BgpRouterParams, AuthenticationData, \
         AuthenticationKeyItem, VirtualNetworkType, IpamSubnetType, SubnetType, \
-        VnSubnetsType, RouteTargetList
+        VnSubnetsType, RouteTargetList, ShareType
 
     HAS_CONTRAIL = True
 except ImportError:
@@ -1991,3 +1991,118 @@ def list_floating_ip_pools(**kwargs):
         # print given pool
         fp_list[len(fp_list) - 1].dump()
         print('\n')
+
+
+def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
+                            owner_access=None, global_access=None,
+                            projects=None, **kwargs):
+    '''
+    Update project to apply floating ip pool
+    This function will add specified floating ip pool to
+    a given project specified by params domain and project
+
+    CLI Example
+    .. code-block:: bash
+        salt '*' contrail.update_floating_ip_pool
+
+
+    params:
+    vn_name - name of the virtual network, which to use
+    vn-project - project which includes virtual network
+    vn-domain - domain wchich includes vn_project and vn_name
+    owner_access (int) - Permission rights for owner
+    global_access (int) - Permission rights for others
+    projects (list) - list of ShareType(tenant_name,tennat_permissions)
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    if vn_domain is None:
+        vn_domain = 'default-domain'
+    fip_obj = None
+
+    vnc_client = _auth(**kwargs)
+    p_fq_name = [vn_domain, vn_project, vn_name, 'default']
+    fip_obj = vnc_client.floating_ip_pool_read(fq_name=p_fq_name)
+
+    if fip_obj is None:
+        ret['comment'] = ("Floating ip pool [{0}, {1}, {2}, {3}]" +
+                          " does not exists.".format(p_fq_name[0],
+                                                     p_fq_name[1],
+                                                     p_fq_name[2],
+                                                     p_fq_name[3]))
+        return ret
+
+    changes = {}
+    # get perms from fip_obj (Floatin ip pool)
+    perms2 = fip_obj.get_perms2()
+    if owner_access not None:
+        if perms2.get_owner_access() != owner_access:
+            changes['owner_access'] = {'old' : perms2.get_owner_access(),
+                                       'new' : owner_access}
+            perms2.set_owner_access(owner_access)
+
+    if global_access not None:
+        if perms2.get_global_access() != global_access:
+            changes['global_access'] = {'old' : perms2.get_global_access(),
+                                        'new' : global_access}
+            perms2.set_global_access(global_access)
+
+    # list which represents the new state of perms
+    final_list = []
+    for item in perms2.get_share():
+
+        for share in projects:
+            if item.get_tenant() == share[0]:
+                # project is in the new and old list
+                # check is the permission number is same
+                if item.get_tenant_access() == share[1]:
+                    # this project and permission is without change, keep it
+                    final_list.append(item)
+                    break
+                else:
+                    # project exists but change the permission
+                    final_list.append(ShareType(tenant=share[0],
+                                                tenant_access=share[1]))
+                    # show changes
+                    n = 'share-'+share[0]
+                    old = "permission for project " + share[0] +
+                          " is " + item.get_tenant_access()
+                    new = "permission for project " + share[0] +
+                          " is " + share[1]
+                    changes[n] = {'old' : old, 'new' : new }
+                    break
+            else:
+                # If old is not in new list continue
+                # If the old is not in new do nothing,
+                # old one will not be added to the new list
+                continue
+
+    # check for the completly new projects
+    for item in projects:
+        for share in final_list:
+            if item[0] == share.get_tenant:
+                # if the item already exists, the quit
+                break
+            else:
+                final_list.append(ShareType(tenant=item[0],
+                                            tenant_access=item[1]))
+                name = 'share-' + item[0]
+                changes['name'] = name + " will be added with permissions " +
+                                  item[1]
+                break
+
+    if __opts__['test']:
+        ret['result'] = None
+        ret['comment'] = changes
+
+        return ret
+    else:
+        ret['comment'] = changes
+        perms2.set_share(final_list)
+        fip_obj.set_perms2(perms2)
+        vnc_client.floating_ip_pool_update(fip_obj)
+
+        return ret
