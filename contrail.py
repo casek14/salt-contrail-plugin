@@ -2069,7 +2069,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                     # show changes
                     n = str('share-'+share[0])
                     old = ("permission for project " + share[0] +
-                          " is " + str(item.get_tenant_access()))
+                          " was " + str(item.get_tenant_access()))
                     new = ("permission for project " + share[0] +
                           " is " + str(share[1]))
                     changes[n] = {'old' : old, 'new' : new }
