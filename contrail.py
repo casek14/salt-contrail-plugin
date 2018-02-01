@@ -2094,6 +2094,11 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                                   item[1])
                 break
 
+    if not perms2.get_share:
+        for item in projects:
+            final_list.append(ShareType(tenant=item[0],
+                                        tenant_access=item[1]))
+
     if __opts__['test']:
         ret['result'] = None
         ret['comment'] = changes
