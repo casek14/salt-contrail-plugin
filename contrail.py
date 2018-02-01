@@ -2071,7 +2071,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                     old = ("permission for project " + share[0] +
                           " is " + item.get_tenant_access())
                     new = ("permission for project " + share[0] +
-                          " is " + share[1])
+                          " is " + str(share[1]))
                     changes[n] = {'old' : old, 'new' : new }
                     break
             else:
@@ -2091,7 +2091,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                                             tenant_access=item[1]))
                 name = 'share-' + item[0]
                 changes['name'] = (name + " will be added with permissions " +
-                                  item[1])
+                                  str(item[1]))
                 break
 
     if not perms2.get_share:
