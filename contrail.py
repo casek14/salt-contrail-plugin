@@ -2040,14 +2040,14 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
     perms2 = fip_obj.get_perms2()
     if owner_access != None:
         if perms2.get_owner_access() != owner_access:
-            changes['owner_access'] = {'old' : perms2.get_owner_access(),
-                                       'new' : owner_access}
+            changes['owner_access'] = {'old' : str(perms2.get_owner_access()),
+                                       'new' : str(owner_access)}
             perms2.set_owner_access(owner_access)
 
     if global_access != None:
         if perms2.get_global_access() != global_access:
-            changes['global_access'] = {'old' : perms2.get_global_access(),
-                                        'new' : global_access}
+            changes['global_access'] = {'old' : str(perms2.get_global_access()),
+                                        'new' : str(global_access)}
             perms2.set_global_access(global_access)
 
     # list which represents the new state of perms
