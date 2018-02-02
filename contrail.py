@@ -2003,7 +2003,12 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
 
     CLI Example
     .. code-block:: bash
-        salt '*' contrail.update_floating_ip_pool
+        salt-call contrail.update_floating_ip_pool \
+                                  'FLOATING-TEST' \
+                                  'admin' \
+                                  'default-domain' \
+                                  7 7 \
+                                  [['pepa',4],['karel',7]]
 
 
     params:
@@ -2027,27 +2032,19 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
     p_fq_name = [vn_domain, vn_project, vn_name, 'default']
     fip_obj = vnc_client.floating_ip_pool_read(fq_name=p_fq_name)
 
-    if fip_obj is None:
-        ret['comment'] = ("Floating ip pool [{0}, {1}, {2}, {3}]" +
-                          " does not exists.".format(p_fq_name[0],
-                                                     p_fq_name[1],
-                                                     p_fq_name[2],
-                                                     p_fq_name[3]))
-        return ret
-
     changes = {}
     # get perms from fip_obj (Floatin ip pool)
     perms2 = fip_obj.get_perms2()
-    if owner_access != None:
+    if owner_access is not None:
         if perms2.get_owner_access() != owner_access:
-            changes['owner_access'] = {'old' : str(perms2.get_owner_access()),
-                                       'new' : str(owner_access)}
+            changes['owner_access'] = {'old': str(perms2.get_owner_access()),
+                                       'new': str(owner_access)}
             perms2.set_owner_access(owner_access)
 
-    if global_access != None:
+    if global_access is not None:
         if perms2.get_global_access() != global_access:
-            changes['global_access'] = {'old' : str(perms2.get_global_access()),
-                                        'new' : str(global_access)}
+            changes['global_access'] = {'old': str(perms2.get_global_access()),
+                                        'new': str(global_access)}
             perms2.set_global_access(global_access)
 
     # list which represents the new state of perms
@@ -2069,32 +2066,30 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                     # show changes
                     n = str('share-'+share[0])
                     old = ("permission for project " + share[0] +
-                          " was " + str(item.get_tenant_access()))
+                           " was " + str(item.get_tenant_access()))
                     new = ("permission for project " + share[0] +
-                          " is " + str(share[1]))
-                    changes[n] = {'old' : old, 'new' : new }
+                           " is " + str(share[1]))
+                    changes[n] = {'old': old, 'new': new}
                     break
-            else:
-                # If old is not in new list continue
-                # If the old is not in new do nothing,
-                # old one will not be added to the new list
-                continue
 
     # check for the completly new projects
     for item in projects:
+        flag = 0
         for share in final_list:
-            if item[0] == share.get_tenant:
-                # if the item already exists, the quit
-                break
+            if item[0] != share.get_tenant():
+                flag = 0
+                continue
             else:
-                final_list.append(ShareType(tenant=item[0],
-                                            tenant_access=item[1]))
-                name = 'share-' + str(item[0])
-                changes['name'] = (name + " will be added with permissions " +
-                                  str(item[1]))
+                flag = 1
                 break
+        if flag == 0:
+            final_list.append(ShareType(tenant=item[0],
+                                        tenant_access=item[1]))
+            name = 'share-' + str(item[0])
+            changes['name'] = (name + " will be added with permissions " +
+                               str(item[1]))
 
-    if not perms2.get_share:
+    if not perms2.get_share():
         for item in projects:
             final_list.append(ShareType(tenant=item[0],
                                         tenant_access=item[1]))
