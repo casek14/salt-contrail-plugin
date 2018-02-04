@@ -1997,9 +1997,8 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                             owner_access=None, global_access=None,
                             projects=None, **kwargs):
     '''
-    Update project to apply floating ip pool
-    This function will add specified floating ip pool to
-    a given project specified by params domain and project
+    Update specific floating ip pool
+
 
     CLI Example
     .. code-block:: bash
