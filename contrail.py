@@ -1987,11 +1987,10 @@ def list_floating_ip_pools(**kwargs):
     fp_list = []
 
     for pool in vnc_client.floating_ip_pools_list()['floating-ip-pools']:
-        fp_list.append(vnc_client.floating_ip_pool_read(pool['fq_name']))
+        fip_obj = vnc_client.floating_ip_pool_read(pool['fq_name'])
+        fp_list.append(fip_obj)
         # print given pool
-        fp_list[len(fp_list) - 1].dump()
-        print('\n')
-
+        fip_obj.dump()
 
 def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                             owner_access=None, global_access=None,
@@ -2048,7 +2047,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
 
     # list which represents the new state of perms
     final_list = []
-    if projects != 'None':
+    if projects:
         for item in perms2.get_share():
             flag_rm = 0
             for share in projects:
