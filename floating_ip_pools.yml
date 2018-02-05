@@ -8,12 +8,6 @@ opencontrail:
         owner_access: 7
         global_access: 7
         list_of_projects:
-          project01:
-            name: 'pepa'
-            permission: 7
-          project02:
-            name: 'karel'
-            permission: 1
-          project03:
-            name: 'franta'
-            permission: 2
+          -  [pepa, 7]
+          -  [karel, 1]
+          -  [franta, 2]

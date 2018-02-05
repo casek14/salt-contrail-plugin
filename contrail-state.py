@@ -851,7 +851,7 @@ def floating_ip_pool_present(vn_name,
                              owner_access=None,
                              global_access=None,
                              projects=None,
-                             **kwargs)
+                             **kwargs):
     '''
     Ensure that floating ip pool existst
     Virtual network with flag external need to be created before this

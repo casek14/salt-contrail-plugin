@@ -300,23 +300,23 @@ create_network_{{ vn.name }}:
 {%- for pool_name, pool in client.floating_ip_pools.items() %}
 update_floating_ip_pool_{{ pool.vn_name }}-default:
   contrail.floating_ip_pool_present:
-  - vn_name: pool.vn_name
-  - vn_project: pool.vn_project
+  - vn_name: {{ pool.vn_name }}
+  - vn_project: {{ pool.vn_project }}
 
 {%- if pool.vn_domain is defined %}
-  - vn_domain: pool.vn_domain
+  - vn_domain: {{ pool.vn_domain }}
 {%- endif %}
 
 {%- if pool.owner_access is defined %}
-  - owner_access: pool.owner_access
+  - owner_access: {{ pool.owner_access }}
 {%- endif %}
 
 {%- if pool.global_access is defined %}
-  - global_access: pool.global_access
+  - global_access: {{ pool.global_access }}
 {%- endif %}
 
-{%- if pool.list_of_project is defined %}
-  - projects: list_of_projects
+{%- if pool.list_of_projects is defined %}
+  - projects: {{ list_of_projects }}
 
 {%- endif %}
 
