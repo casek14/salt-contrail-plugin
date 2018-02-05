@@ -2049,9 +2049,10 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
     # list which represents the new state of perms
     final_list = []
     for item in perms2.get_share():
-
+        flag_rm = 0
         for share in projects:
             if item.get_tenant() == share[0]:
+                flag_rm = 0
                 # project is in the new and old list
                 # check is the permission number is same
                 if item.get_tenant_access() == share[1]:
@@ -2070,6 +2071,12 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                            " is " + str(share[1]))
                     changes[n] = {'old': old, 'new': new}
                     break
+            else:
+                flag_rm = 1
+
+        if flag_rm == 1:
+            rm_name = "share-" + item.get_tenant()
+            changes[rm_name] = item.get_tenant() + " will be removed"
 
     # check for the completly new projects
     for item in projects:
@@ -2085,7 +2092,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
             final_list.append(ShareType(tenant=item[0],
                                         tenant_access=item[1]))
             name = 'share-' + str(item[0])
-            changes['name'] = (name + " will be added with permissions " +
+            changes[name] = (name + " will be added with permissions " +
                                str(item[1]))
 
     if __opts__['test']:
