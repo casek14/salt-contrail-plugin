@@ -316,7 +316,7 @@ update_floating_ip_pool_{{ pool.vn_name }}-default:
 {%- endif %}
 
 {%- if pool.list_of_projects is defined %}
-  - projects: {{ list_of_projects }}
+  - projects: {{ pool.list_of_projects }}
 
 {%- endif %}
 
