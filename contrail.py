@@ -2096,7 +2096,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                 changes[name] = (name + " will be added with permissions " +
                                    str(item[1]))
     else:
-        for item in perms2.get_share()
+        for item in perms2.get_share():
             rm_name = "share-" + item.get_tenant()
             changes[rm_name] = item.get_tenant() + " will be removed"
 
