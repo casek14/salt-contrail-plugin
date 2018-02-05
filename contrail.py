@@ -2048,7 +2048,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
 
     # list which represents the new state of perms
     final_list = []
-    if project != None:
+    if projects != None:
         for item in perms2.get_share():
             flag_rm = 0
             for share in projects:
