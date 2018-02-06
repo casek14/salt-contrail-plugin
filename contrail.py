@@ -2049,10 +2049,8 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
     final_list = []
     if projects:
         for item in perms2.get_share():
-            flag_rm = 0
             for share in projects:
                 if item.get_tenant() == share[0]:
-                    flag_rm = 0
                     # project is in the new and old list
                     # check is the permission number is same
                     if item.get_tenant_access() == share[1]:
@@ -2065,35 +2063,29 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                                                     tenant_access=share[1]))
                         # show changes
                         n = str('share-'+share[0])
-                        old = ("permission for project " + share[0] +
-                               " was " + str(item.get_tenant_access()))
-                        new = ("permission for project " + share[0] +
-                               " is " + str(share[1]))
+                        old_str = "permission for project {0} was {1}"
+                        new_str = "permission for project {0} is {1}"
+                        old = old_str.format(share[0],
+                                             str(item.get_tenant_access()))
+
+                        new = new_str.format(share[0], str(share[1]))
                         changes[n] = {'old': old, 'new': new}
                         break
-                else:
-                    flag_rm = 1
-
-            if flag_rm == 1:
+            else:
                 rm_name = "share-" + item.get_tenant()
                 changes[rm_name] = item.get_tenant() + " will be removed"
 
         # check for the completly new projects
         for item in projects:
-            flag = 0
             for share in final_list:
-                if item[0] != share.get_tenant():
-                    flag = 0
-                    continue
-                else:
-                    flag = 1
+                if item[0] == share.get_tenant():
                     break
-            if flag == 0:
+            else:
                 final_list.append(ShareType(tenant=item[0],
                                             tenant_access=item[1]))
                 name = 'share-' + str(item[0])
-                changes[name] = (name + " will be added with permissions " +
-                                   str(item[1]))
+                c_str = '{0} will ve added with permissions {1}'
+                changes[name] = c_str.format(name, item[1])
     else:
         for item in perms2.get_share():
             rm_name = "share-" + item.get_tenant()
