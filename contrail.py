@@ -1973,7 +1973,7 @@ def global_system_config_delete(name, **kwargs):
     return ret
 
 
-def list_floating_ip_pools(**kwargs):
+def floating_ip_pools_list(**kwargs):
     '''
     List all floating ip pools
 
@@ -1981,16 +1981,12 @@ def list_floating_ip_pools(**kwargs):
     .. code-block:: bash
         salt '*' contrail.list_floating_ip_pools
     '''
+    ret = {}
     vnc_client = _auth(**kwargs)
-    pools = vnc_client.floating_ip_pools_list()
-    # list of floating ip pools objects
-    fp_list = []
 
     for pool in vnc_client.floating_ip_pools_list()['floating-ip-pools']:
         fip_obj = vnc_client.floating_ip_pool_read(pool['fq_name'])
-        fp_list.append(fip_obj)
-        # print given pool
-        fip_obj.dump()
+        ret[pool.get_name] = fip_obj.__dict__
 
 def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                             owner_access=None, global_access=None,
@@ -2054,7 +2050,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                     # project is in the new and old list
                     # check is the permission number is same
                     if item.get_tenant_access() == share[1]:
-                        # this project and permission is without change, keep it
+                        # this project and perm is without change, keep it
                         final_list.append(item)
                         break
                     else:
@@ -2089,7 +2085,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
     else:
         for item in perms2.get_share():
             rm_name = "share-" + item.get_tenant()
-            changes[rm_name] = item.get_tenant() + " will be removed"
+            changes[rm_name] = "Remove {0} project".format(item.get_tenant())
 
     if __opts__['test']:
         ret['result'] = None
