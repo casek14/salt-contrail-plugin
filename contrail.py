@@ -2097,7 +2097,8 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
 
         return ret
     else:
-        ret['comment'] = changes
+        if changes:
+            ret['changes'] = changes
         perms2.set_share(final_list)
         fip_obj.set_perms2(perms2)
         vnc_client.floating_ip_pool_update(fip_obj)
