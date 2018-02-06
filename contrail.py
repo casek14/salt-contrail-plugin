@@ -1986,7 +1986,7 @@ def floating_ip_pools_list(**kwargs):
 
     for pool in vnc_client.floating_ip_pools_list()['floating-ip-pools']:
         fip_obj = vnc_client.floating_ip_pool_read(pool['fq_name'])
-        ret[pool.get_fq_name_str()] = fip_obj.__dict__
+        ret[fip_obj.get_fq_name_str()] = fip_obj.__dict__
 
 def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                             owner_access=None, global_access=None,
