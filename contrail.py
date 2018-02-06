@@ -2070,7 +2070,8 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                         break
             else:
                 rm_name = "share-" + item.get_tenant()
-                changes[rm_name] = item.get_tenant() + " will be removed"
+                rm_str = "Remove {0} project"
+                changes[rm_name] = rm_str.format(item.get_tenant())
 
         # check for the completly new projects
         for item in projects:
@@ -2081,7 +2082,7 @@ def update_floating_ip_pool(vn_name, vn_project, vn_domain=None,
                 final_list.append(ShareType(tenant=item[0],
                                             tenant_access=item[1]))
                 name = 'share-' + str(item[0])
-                c_str = '{0} will be added with permissions {1}'
+                c_str = '{0} added with permissions {1}'
                 changes[name] = c_str.format(name, item[1])
     else:
         for item in perms2.get_share():
